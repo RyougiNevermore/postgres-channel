@@ -1,0 +1,36 @@
+{
+  "security": [
+    {
+      "username": "hello",
+      "password": "N.aikTjYyc/lg"
+    }
+  ],
+  "http": {
+    "host": "0.0.0.0",
+    "port": 18090,
+    "htpasswdFile": ".htpasswd",
+    "ssl": {
+      "cert": "ssl/cert.pem",
+      "key": "ssl/private.key",
+      "http2": true,
+      "http2UseAlpn": true
+    }
+  },
+  "postgres": {
+    "kind": "standalone",
+    "nodes": [
+      {
+        "port": 15432,
+        "host": "47.92.74.61",
+        "database": "ugtc",
+        "user": "ugtc",
+        "password": "ugtc@901",
+        "maxPoolSize": 2,
+        "ssl": false,
+        "sslVerifyCA": false,
+        "sslCertPath": "",
+        "sslKeyPath": ""
+      }
+    ]
+  }
+}
