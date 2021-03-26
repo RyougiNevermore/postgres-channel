@@ -1,5 +1,7 @@
 package org.pharosnet.postgres.channel.database;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -11,9 +13,11 @@ import io.vertx.pgclient.PgPool;
 import io.vertx.pgclient.SslMode;
 import io.vertx.sqlclient.PoolOptions;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.pharosnet.postgres.channel.config.postgres.NodeConfig;
 import org.pharosnet.postgres.channel.config.postgres.PostgresConfig;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -68,13 +72,27 @@ public class Databases {
             this.nodes.add(pool);
         }
         vertx.getOrCreateContext().put(context_key, this);
+        Duration transactionCacheTTL;
+        try {
+            transactionCacheTTL = Duration.parse(Optional.ofNullable(config.getTransactionCacheTTL()).orElse("PT10M"));
+        } catch (Exception e) {
+            log.error("parse transactionCacheTTL failed, transactionCacheTTL = {}, set PT10M default", config.getTransactionCacheTTL(), e);
+            transactionCacheTTL = Duration.ofMinutes(10);
+        }
+        Long transactionCacheMaxSize = Optional.ofNullable(config.getTransactionCacheMaxSize()).orElse(100000L);
+        this.transactions = Caffeine.newBuilder()
+                .expireAfterWrite(transactionCacheTTL)
+                .maximumSize(transactionCacheMaxSize)
+                .build();
+        vertx.getOrCreateContext().put("_cache_transaction_ttl", transactionCacheMaxSize);
     }
 
     private final boolean distributed;
     private final List<PgPool> nodes;
     private final AtomicInteger index;
+    private final Cache<@NonNull String, @NonNull CachedTransaction> transactions;
 
-    public PgPool getMaster() {
+    public PgPool getNode() {
         if (!this.distributed) {
             return this.nodes.get(0);
         }
@@ -121,9 +139,17 @@ public class Databases {
         }
         CompositeFuture.all(futures)
                 .onSuccess(r -> {
+                    this.transactions.cleanUp();
                     promise.complete();
                 })
-                .onFailure(promise::fail);
+                .onFailure(e -> {
+                    this.transactions.cleanUp();
+                    promise.fail(e);
+                });
         return promise.future();
+    }
+
+    public Cache<@NonNull String, @NonNull CachedTransaction> getTransactions() {
+        return transactions;
     }
 }

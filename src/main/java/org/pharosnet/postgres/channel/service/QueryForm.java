@@ -23,6 +23,7 @@ public class QueryForm {
 
     private String query;
     private JsonArray args;
+    private Boolean batch;
     private Boolean slaverMode;
 
     public String getQuery() {
@@ -39,6 +40,14 @@ public class QueryForm {
 
     public void setArgs(JsonArray args) {
         this.args = args;
+    }
+
+    public Boolean getBatch() {
+        return batch;
+    }
+
+    public void setBatch(Boolean batch) {
+        this.batch = batch;
     }
 
     public Boolean getSlaverMode() {

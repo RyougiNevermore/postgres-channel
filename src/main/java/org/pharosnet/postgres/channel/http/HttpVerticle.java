@@ -78,29 +78,33 @@ public class HttpVerticle extends AbstractVerticle {
                 log.error("can not get ip by HOSTNAME({})", hostname, e);
                 throw new UnknownHostException(String.format("an not get ip by HOSTNAME(%s), %s", hostname, e.getMessage()));
             }
-            this.discovery = ServiceDiscovery.create(vertx,
-                    new ServiceDiscoveryOptions()
-                            .setAnnounceAddress(ip)
-                            .setName("postgres-channel"));
-            String discoveryKind = Optional.ofNullable(discoveryConfig.getKind()).orElse("").trim();
-            if (discoveryKind.equals("consul")) {
-                this.discovery.registerServiceImporter(new ConsulServiceImporter(),
-                        new JsonObject()
-                                .put("host", discoveryConfig.getConsul().getHost())
-                                .put("port", discoveryConfig.getConsul().getPort())
-                                .put("scan-period", discoveryConfig.getConsul().getScanPeriod())
-                                .put("acl_token", discoveryConfig.getConsul().getAclToken()));
 
-            } else if (discoveryKind.equals("kubernetes")) {
+            String discoveryKind = Optional.ofNullable(discoveryConfig.getKind()).orElse("none").trim();
+            if (!"none".equals(discoveryKind)) {
+                this.discovery = ServiceDiscovery.create(vertx,
+                        new ServiceDiscoveryOptions()
+                                .setAnnounceAddress(ip)
+                                .setName("postgres-channel"));
+                if (discoveryKind.equals("consul")) {
+                    this.discovery.registerServiceImporter(new ConsulServiceImporter(),
+                            new JsonObject()
+                                    .put("host", discoveryConfig.getConsul().getHost())
+                                    .put("port", discoveryConfig.getConsul().getPort())
+                                    .put("scan-period", discoveryConfig.getConsul().getScanPeriod())
+                                    .put("acl_token", discoveryConfig.getConsul().getAclToken()));
+
+                } else if (discoveryKind.equals("kubernetes")) {
 //                this.discovery.registerServiceImporter(new KubernetesServiceImporter(),
 //                        new JsonObject());
-            } else if (discoveryKind.equals("docker")) {
+                } else if (discoveryKind.equals("docker")) {
 //                this.discovery.registerServiceImporter(new DockerLinksServiceImporter(),
 //                        new JsonObject());
-            } else {
-                promise.fail("discovery kind in config is invalid, must be one of consul, kubernetes and docker");
-                return;
+                } else {
+                    promise.fail("discovery kind in config is invalid, must be one of consul, kubernetes and docker");
+                    return;
+                }
             }
+
             this.vertx.getOrCreateContext().put("_discovery", this.discovery);
         }
 
@@ -121,16 +125,19 @@ public class HttpVerticle extends AbstractVerticle {
                                     promise.complete();
                                     return;
                                 }
-
                                 Record record = HttpEndpoint.createRecord("postgres-channel", httpConfig.getHost(), httpConfig.getPort(), "/");
                                 this.discovery.publish(record)
                                         .onSuccess(ar -> {
+                                            if (log.isDebugEnabled()) {
+                                                log.debug("publish http succeed, id = {}", ar.getRegistration());
+                                            }
                                             vertx.getOrCreateContext().put("_discovery_id", ar.getRegistration());
                                             promise.complete();
-                                        }).onFailure(e -> {
-                                    log.error("publish http failed", e);
-                                    promise.fail("publish http failed");
-                                });
+                                        })
+                                        .onFailure(e -> {
+                                            log.error("publish http failed", e);
+                                            promise.fail("publish http failed");
+                                        });
                             })
                             .onFailure(e -> {
                                 log.error("create http server failed", e);

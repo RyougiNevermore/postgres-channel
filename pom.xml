@@ -182,6 +182,14 @@
 
         <!--   <<< vertx  -->
 
+        <!--   cache >>> -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.0.1</version>
+        </dependency>
+        <!--   <<< cache  -->
+
         <!--   netty >>> -->
         <dependency>
             <groupId>io.netty</groupId>

@@ -31,6 +31,16 @@ public class PostgresConfigConverter {
             obj.setNodes(list);
           }
           break;
+        case "transactionCacheMaxSize":
+          if (member.getValue() instanceof Number) {
+            obj.setTransactionCacheMaxSize(((Number)member.getValue()).longValue());
+          }
+          break;
+        case "transactionCacheTTL":
+          if (member.getValue() instanceof String) {
+            obj.setTransactionCacheTTL((String)member.getValue());
+          }
+          break;
       }
     }
   }
@@ -47,6 +57,12 @@ public class PostgresConfigConverter {
       JsonArray array = new JsonArray();
       obj.getNodes().forEach(item -> array.add(item.toJson()));
       json.put("nodes", array);
+    }
+    if (obj.getTransactionCacheMaxSize() != null) {
+      json.put("transactionCacheMaxSize", obj.getTransactionCacheMaxSize());
+    }
+    if (obj.getTransactionCacheTTL() != null) {
+      json.put("transactionCacheTTL", obj.getTransactionCacheTTL());
     }
   }
 }

@@ -15,6 +15,8 @@ import org.pharosnet.postgres.channel.context.Context;
 @ProxyGen
 public interface QueryService {
 
+    String HTTP_PATH = "/query";
+
     String SERVICE_ADDRESS = "postgres-channel/query";
 
     static MessageConsumer<JsonObject> register(Vertx vertx) {

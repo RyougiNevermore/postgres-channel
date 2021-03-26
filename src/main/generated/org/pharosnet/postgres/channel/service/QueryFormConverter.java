@@ -21,6 +21,11 @@ public class QueryFormConverter {
             obj.setArgs(((JsonArray)member.getValue()).copy());
           }
           break;
+        case "batch":
+          if (member.getValue() instanceof Boolean) {
+            obj.setBatch((Boolean)member.getValue());
+          }
+          break;
         case "query":
           if (member.getValue() instanceof String) {
             obj.setQuery((String)member.getValue());
@@ -42,6 +47,9 @@ public class QueryFormConverter {
   public static void toJson(QueryForm obj, java.util.Map<String, Object> json) {
     if (obj.getArgs() != null) {
       json.put("args", obj.getArgs());
+    }
+    if (obj.getBatch() != null) {
+      json.put("batch", obj.getBatch());
     }
     if (obj.getQuery() != null) {
       json.put("query", obj.getQuery());

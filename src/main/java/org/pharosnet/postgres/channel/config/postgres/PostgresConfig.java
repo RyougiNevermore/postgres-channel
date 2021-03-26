@@ -27,6 +27,9 @@ public class PostgresConfig {
     // [0] = standalone or master, [1,n] = slavers, [0, n] = xl
     private List<NodeConfig> nodes;
 
+    private String transactionCacheTTL;
+    private Long transactionCacheMaxSize;
+
     public String getKind() {
         return kind;
     }
@@ -43,4 +46,19 @@ public class PostgresConfig {
         this.nodes = nodes;
     }
 
+    public String getTransactionCacheTTL() {
+        return transactionCacheTTL;
+    }
+
+    public void setTransactionCacheTTL(String transactionCacheTTL) {
+        this.transactionCacheTTL = transactionCacheTTL;
+    }
+
+    public Long getTransactionCacheMaxSize() {
+        return transactionCacheMaxSize;
+    }
+
+    public void setTransactionCacheMaxSize(Long transactionCacheMaxSize) {
+        this.transactionCacheMaxSize = transactionCacheMaxSize;
+    }
 }
