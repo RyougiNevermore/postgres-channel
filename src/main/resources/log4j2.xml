@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <Console name="DEBUG" target="SYSTEM_OUT">
+            <PatternLayout pattern="[%highlight{%-5level}] [%yellow{%d{yyyy-MM-dd HH:mm:ss.SSS}}] [%magenta{%-20.20t}] [%cyan{%-40.40l}] - %msg%n"/>
+        </Console>
+        <Console name="NORMAL" target="SYSTEM_OUT">
+            <PatternLayout pattern="[%highlight{%-5level}] [%yellow{%d{yyyy-MM-dd HH:mm:ss.SSS}}] [%magenta{%-20.20t}] [%cyan{%-40.40logger}] - %msg%n"/>
+        </Console>
+        <Console name="JSON" target="SYSTEM_OUT">
+            <JsonTemplateLayout eventTemplateUri="classpath:LogstashJsonEventLayoutV1.json"/>
+        </Console>
+        <Async name="ASYNC" includeLocation="${env:POSTGRES_CHANNEL_LOGGER_POSITION}">
+            <AppenderRef ref="NORMAL" />
+            <DisruptorBlockingQueue />
+        </Async>
+        <Async name="ASYNC_JSON" includeLocation="${env:POSTGRES_CHANNEL_LOGGER_POSITION}">
+            <AppenderRef ref="JSON" />
+            <DisruptorBlockingQueue />
+        </Async>
+    </Appenders>
+    <Loggers>
+        <Logger name="org.hibernate" level="WARN"/>
+        <Logger name="com.hazelcast" level="INFO"/>
+        <Logger name="io.netty" level="WARN"/>
+        <Logger name="io.vertx" level="WARN"/>
+        <Root level="${env:POSTGRES_CHANNEL_LOGGER_LEVEL}">
+            <AppenderRef ref="${env:POSTGRES_CHANNEL_LOGGER_APPENDER}"/>
+        </Root>
+    </Loggers>
+</Configuration>

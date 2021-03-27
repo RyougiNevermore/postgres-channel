@@ -3,6 +3,8 @@ package org.pharosnet.postgres.channel;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import io.netty.util.internal.logging.InternalLoggerFactory;
+import io.netty.util.internal.logging.Log4J2LoggerFactory;
 import io.vertx.core.*;
 import io.vertx.core.impl.cpu.CpuCoreSensor;
 import io.vertx.core.json.jackson.DatabindCodec;
@@ -19,8 +21,12 @@ public class Main {
 
     static {
         System.setProperty("postgres-channel.logger.level", Optional.ofNullable(System.getenv("POSTGRES_CHANNEL_LOGGER_LEVEL")).orElse("info").trim());
-        System.setProperty("vertx.logger-delegate-factory-class-name", "io.vertx.core.logging.SLF4JLogDelegateFactory");
-        System.setProperty("hazelcast.logging.type", "slf4j");
+        System.setProperty("postgres-channel.logger.appender", Optional.ofNullable(System.getenv("POSTGRES_CHANNEL_LOGGER_APPENDER")).orElse("ASYNC").trim());
+
+        System.setProperty("vertx.logger-delegate-factory-class-name", "io.vertx.core.logging.Log4j2LogDelegateFactory");
+        System.setProperty("hazelcast.logging.type", "log4j2");
+        InternalLoggerFactory.setDefaultFactory(Log4J2LoggerFactory.INSTANCE);
+
         DatabindCodec.mapper()
                 .registerModule(new ParameterNamesModule())
                 .registerModule(new JavaTimeModule())
