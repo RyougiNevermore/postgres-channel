@@ -27,10 +27,10 @@ public class QueryServiceImpl extends AbstractServiceImpl implements QueryServic
             handler.handle(ServiceException.fail(400, "query is empty"));
             return;
         }
-        this.isLocal(context.getId())
+        this.isLocal(context)
                 .compose(local -> {
                     if (local) {
-                        return this.getTransaction(context.getId())
+                        return this.getTransaction(context)
                                 .compose(cachedTransaction -> {
                                     Promise<JsonArray> resultPromise = Promise.promise();
                                     if (cachedTransaction.isEmpty()) {
@@ -87,7 +87,7 @@ public class QueryServiceImpl extends AbstractServiceImpl implements QueryServic
                     } else {
                         // remote invoke
                         Promise<JsonArray> resultPromise = Promise.promise();
-                        this.remoteInvoke(QueryService.HTTP_PATH, context, form)
+                        this.remoteInvoke(QueryService.HTTP_PATH, context, form.toJson())
                                 .onFailure(e -> {
                                     log.error("query in remote failed, \nsql = {}\n arg = {}", sql, form.getArgs().encodePrettily(), e);
                                     resultPromise.fail(e);

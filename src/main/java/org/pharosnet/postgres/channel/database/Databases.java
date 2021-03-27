@@ -83,6 +83,7 @@ public class Databases {
         this.transactions = Caffeine.newBuilder()
                 .expireAfterWrite(transactionCacheTTL)
                 .maximumSize(transactionCacheMaxSize)
+                .evictionListener(new TransactionEvictionListener())
                 .build();
         vertx.getOrCreateContext().put("_cache_transaction_ttl", transactionCacheMaxSize);
     }
@@ -152,4 +153,5 @@ public class Databases {
     public Cache<@NonNull String, @NonNull CachedTransaction> getTransactions() {
         return transactions;
     }
+
 }

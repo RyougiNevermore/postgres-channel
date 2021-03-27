@@ -7,10 +7,9 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.ServiceDiscovery;
-import io.vertx.sqlclient.SqlConnection;
-import io.vertx.sqlclient.Transaction;
 import lombok.extern.slf4j.Slf4j;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.pharosnet.postgres.channel.context.Context;
@@ -18,7 +17,6 @@ import org.pharosnet.postgres.channel.database.CachedTransaction;
 import org.pharosnet.postgres.channel.database.Databases;
 
 import java.util.Optional;
-import java.util.UUID;
 
 @Slf4j
 public class AbstractServiceImpl {
@@ -51,74 +49,80 @@ public class AbstractServiceImpl {
         return vertx.getOrCreateContext().get("_discovery_id");
     }
 
-    protected Future<Boolean> isLocal(String requestId) {
+    protected Future<Boolean> isLocal(Context context) {
+        if (Optional.ofNullable(context.getId()).orElse("").trim().isBlank()) {
+            return Future.succeededFuture(true);
+        }
         Promise<Boolean> promise = Promise.promise();
-        this.getTransactionIdAndHostIdByRequestId(requestId)
-                .onSuccess(ids -> {
-                    if (ids.isEmpty()) {
+        this.getHostId(context)
+                .onSuccess(hostId -> {
+                    if (hostId.isEmpty()) {
                         promise.complete(true);
                         return;
                     }
-                    promise.complete(ids.get().getString(1).equals(this.getHostId()));
+                    promise.complete(hostId.get().equals(this.getHostId()));
                 })
                 .onFailure(promise::fail);
         return promise.future();
     }
 
-    protected Future<Void> putTransaction(String requestId, SqlConnection connection, Transaction transaction) {
-        String txId = UUID.randomUUID().toString();
-        this.transactions.put(requestId, new CachedTransaction(connection, transaction));
+    protected Future<Void> putTransaction(String transactionId, CachedTransaction transaction) {
         return this.vertx.sharedData().getAsyncMap(host_key)
-                .compose(map -> map.put(requestId, String.format("%s@%s", txId, this.getHostId()), this.transactionCachedTTL));
+                .compose(map -> map.put(transactionId, this.getHostId(), this.transactionCachedTTL))
+                .compose(r -> {
+                    this.transactions.put(transactionId, transaction);
+                    return Future.succeededFuture();
+                });
     }
 
-    protected Future<Optional<CachedTransaction>> getTransaction(String requestId) {
+    protected Future<Optional<CachedTransaction>> getTransaction(Context context) {
         try {
-            CachedTransaction transaction = this.transactions.getIfPresent(requestId);
+            CachedTransaction transaction = this.transactions.getIfPresent(context.getId());
             return Future.succeededFuture(Optional.ofNullable(transaction));
         } catch (Exception e) {
             if (log.isWarnEnabled()) {
-                log.warn("get transaction failed by request({})", requestId);
+                log.warn("get transaction failed by id({})", context.getId());
             }
             return Future.succeededFuture(Optional.empty());
         }
     }
 
-    protected Future<Void> releaseTransaction(String requestId) {
+    protected Future<Void> releaseTransaction(String transactionId) {
         return this.vertx.sharedData().getAsyncMap(host_key)
                 .compose(map -> {
-                    map.remove(requestId);
-                    this.transactions.invalidate(requestId);
+                    map.remove(transactionId);
+                    try {
+                        this.transactions.invalidate(transactionId);
+                    } catch (Exception ignored) {
+                    }
                     return Future.succeededFuture();
                 });
     }
 
-    private Future<Optional<JsonArray>> getTransactionIdAndHostIdByRequestId(String requestId) {
-        Promise<Optional<JsonArray>> promise = Promise.promise();
+    private Future<Optional<String>> getHostId(Context context) {
+        Promise<Optional<String>> promise = Promise.promise();
         this.vertx.sharedData().getAsyncMap(host_key)
-                .compose(map -> map.get(requestId))
+                .compose(map -> map.get(context.getId()))
                 .onSuccess(r -> {
                     if (log.isDebugEnabled()) {
-                        log.error("get transaction id and host id {} by request id {}", r, requestId);
+                        log.error("get host id {} by transaction id {}", r, context.getId());
                     }
                     if (r == null) {
                         promise.complete(Optional.empty());
                         return;
                     }
                     if (r instanceof String) {
-                        String token = (String) r;
-                        if (token.isBlank()) {
-                            promise.complete(Optional.empty());
-                            return;
+                        String hostId = (String) r;
+                        if (log.isDebugEnabled()) {
+                            log.debug("get host({}) by transaction({})", hostId, context.getId());
                         }
-                        String[] items = token.split("@");
-                        promise.complete(Optional.of(new JsonArray().add(items[0]).add(items[1])));
+                        promise.complete(Optional.of(hostId));
                         return;
                     }
-                    promise.fail(String.format("transaction id and host id of request id %s is not string type", requestId));
+                    promise.fail(String.format("host id of transaction(%s) is not string type", context.getId()));
                 })
                 .onFailure(e -> {
-                    log.error("get transaction id and host id by request id {} is failed", requestId);
+                    log.error("get host id by transaction({}) is failed", context.getId());
                     promise.complete(Optional.empty());
                 });
         return promise.future();
@@ -145,18 +149,17 @@ public class AbstractServiceImpl {
         return promise.future();
     }
 
-    protected Future<JsonArray> remoteInvoke(String path, Context context, QueryForm form) {
+    protected Future<JsonArray> remoteInvoke(String path, Context context, JsonObject form) {
         if (this.discovery == null) {
             return Future.failedFuture("server is not in distribute mode");
         }
         Promise<JsonArray> promise = Promise.promise();
-        this.getTransactionIdAndHostIdByRequestId(context.getId())
-                .compose(ids -> {
-                    if (ids.isEmpty()) {
-                        return Future.failedFuture("request id is lost");
+        this.getHostId(context)
+                .compose(hostId -> {
+                    if (hostId.isEmpty()) {
+                        return Future.failedFuture("transaction id is lost");
                     }
-                    String hostId = ids.get().getString(1);
-                    return Future.succeededFuture(hostId);
+                    return Future.succeededFuture(hostId.get());
                 })
                 .compose(this::fetchHostRecord)
                 .compose(record -> {
@@ -170,9 +173,9 @@ public class AbstractServiceImpl {
                     HttpClient client = reference.getAs(HttpClient.class);
                     client.request(HttpMethod.POST, path)
                             .compose(request -> {
-                                return request.putHeader("x-request-id", context.getId())
+                                return request.putHeader("x-transaction-id", context.getId())
                                         .putHeader("Authorization", context.getAuthorizationToken())
-                                        .send(form.toJson().encode());
+                                        .send(form.encode());
                             })
                             .onSuccess(rr -> {
                                 rr.body()

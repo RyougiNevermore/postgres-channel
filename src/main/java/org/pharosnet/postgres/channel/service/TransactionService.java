@@ -15,7 +15,8 @@ import org.pharosnet.postgres.channel.context.Context;
 @ProxyGen
 public interface TransactionService {
 
-    String shared_key = "_postgres_channel_tx";
+
+    String HTTP_PATH = "/transaction";
 
     String SERVICE_ADDRESS = "postgres-channel/transaction";
 
@@ -26,5 +27,7 @@ public interface TransactionService {
     static TransactionService proxy(Vertx vertx) {
         return new TransactionServiceVertxEBProxy(vertx, SERVICE_ADDRESS);
     }
+
+    void execute(Context context, TransactionForm form, Handler<AsyncResult<TransactionResult>> handler);
 
 }

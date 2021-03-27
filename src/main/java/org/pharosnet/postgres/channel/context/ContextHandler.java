@@ -10,11 +10,7 @@ public class ContextHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext routingContext) {
-       String id = Optional.ofNullable(routingContext.request().getHeader("x-request-id")).orElse("").trim();
-       if (id.isBlank()) {
-           routingContext.fail(403, new Exception("x-request-id header is missing"));
-           return;
-       }
+       String id = Optional.ofNullable(routingContext.request().getHeader("x-transaction-id")).orElse("").trim();
        Context context = new Context();
        context.setId(id);
        context.setData(new JsonObject());

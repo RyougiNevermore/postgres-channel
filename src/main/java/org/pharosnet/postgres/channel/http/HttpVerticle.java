@@ -10,6 +10,8 @@ import io.vertx.servicediscovery.Record;
 import io.vertx.servicediscovery.ServiceDiscovery;
 import io.vertx.servicediscovery.ServiceDiscoveryOptions;
 import io.vertx.servicediscovery.consul.ConsulServiceImporter;
+import io.vertx.servicediscovery.docker.DockerServiceImporter;
+import io.vertx.servicediscovery.kubernetes.KubernetesServiceImporter;
 import io.vertx.servicediscovery.types.HttpEndpoint;
 import lombok.extern.slf4j.Slf4j;
 import org.pharosnet.postgres.channel.config.http.DiscoveryConfig;
@@ -94,11 +96,11 @@ public class HttpVerticle extends AbstractVerticle {
                                     .put("acl_token", discoveryConfig.getConsul().getAclToken()));
 
                 } else if (discoveryKind.equals("kubernetes")) {
-//                this.discovery.registerServiceImporter(new KubernetesServiceImporter(),
-//                        new JsonObject());
+                this.discovery.registerServiceImporter(new KubernetesServiceImporter(),
+                        new JsonObject());
                 } else if (discoveryKind.equals("docker")) {
-//                this.discovery.registerServiceImporter(new DockerLinksServiceImporter(),
-//                        new JsonObject());
+                this.discovery.registerServiceImporter(new DockerServiceImporter(),
+                        new JsonObject());
                 } else {
                     promise.fail("discovery kind in config is invalid, must be one of consul, kubernetes and docker");
                     return;

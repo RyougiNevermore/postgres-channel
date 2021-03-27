@@ -41,8 +41,13 @@ import io.vertx.serviceproxy.ServiceExceptionMessageCodec;
 import io.vertx.serviceproxy.HelperUtils;
 import io.vertx.serviceproxy.ServiceBinder;
 
+import org.pharosnet.postgres.channel.context.Context;
 import io.vertx.core.Vertx;
+import org.pharosnet.postgres.channel.service.TransactionResult;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.eventbus.MessageConsumer;
+import io.vertx.core.Handler;
+import org.pharosnet.postgres.channel.service.TransactionForm;
 import org.pharosnet.postgres.channel.service.TransactionService;
 /*
   Generated Proxy code - DO NOT EDIT
@@ -120,6 +125,18 @@ public class TransactionServiceVertxProxyHandler extends ProxyHandler {
       if (action == null) throw new IllegalStateException("action not specified");
       accessed();
       switch (action) {
+        case "execute": {
+          service.execute(json.getJsonObject("context") != null ? new org.pharosnet.postgres.channel.context.Context((JsonObject)json.getJsonObject("context")) : null,
+                        json.getJsonObject("form") != null ? new org.pharosnet.postgres.channel.service.TransactionForm((JsonObject)json.getJsonObject("form")) : null,
+                        res -> {
+                        if (res.failed()) {
+                          HelperUtils.manageFailure(msg, res.cause(), includeDebugInfo);
+                        } else {
+                          msg.reply(res.result() != null ? res.result().toJson() : null);
+                        }
+                     });
+          break;
+        }
         default: throw new IllegalStateException("Invalid action: " + action);
       }
     } catch (Throwable t) {

@@ -125,15 +125,14 @@ public class Http {
 
         vertx.createHttpServer(options).requestHandler(HttpRouterBuilder.build(vertx)).listen(r -> {
             if (r.failed()) {
-                log.error("无法启动 HTTP 服务,", r.cause());
+                log.error("HTTP start failed", r.cause());
                 promise.fail(r.cause());
                 return;
             }
             if (log.isDebugEnabled()) {
-                log.debug("启动 HTTP 服务成功, {}:{}", options.getHost(), options.getPort());
+                log.debug("HTTP start succeed, {}:{}", options.getHost(), options.getPort());
             }
             this.server = r.result();
-            // todo discovery
             promise.complete();
         });
 

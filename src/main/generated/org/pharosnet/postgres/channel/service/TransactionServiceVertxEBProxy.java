@@ -32,8 +32,13 @@ import io.vertx.serviceproxy.ServiceException;
 import io.vertx.serviceproxy.ServiceExceptionMessageCodec;
 import io.vertx.serviceproxy.ProxyUtils;
 
+import org.pharosnet.postgres.channel.context.Context;
 import io.vertx.core.Vertx;
+import org.pharosnet.postgres.channel.service.TransactionResult;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.eventbus.MessageConsumer;
+import io.vertx.core.Handler;
+import org.pharosnet.postgres.channel.service.TransactionForm;
 import org.pharosnet.postgres.channel.service.TransactionService;
 /*
   Generated Proxy code - DO NOT EDIT
@@ -61,4 +66,24 @@ public class TransactionServiceVertxEBProxy implements TransactionService {
     }
   }
 
+  @Override
+  public void execute(Context context, TransactionForm form, Handler<AsyncResult<TransactionResult>> handler){
+    if (closed) {
+      handler.handle(Future.failedFuture(new IllegalStateException("Proxy is closed")));
+      return;
+    }
+    JsonObject _json = new JsonObject();
+    _json.put("context", context != null ? context.toJson() : null);
+    _json.put("form", form != null ? form.toJson() : null);
+
+    DeliveryOptions _deliveryOptions = (_options != null) ? new DeliveryOptions(_options) : new DeliveryOptions();
+    _deliveryOptions.addHeader("action", "execute");
+    _vertx.eventBus().<JsonObject>request(_address, _json, _deliveryOptions, res -> {
+      if (res.failed()) {
+        handler.handle(Future.failedFuture(res.cause()));
+      } else {
+        handler.handle(Future.succeededFuture(res.result().body() != null ? new org.pharosnet.postgres.channel.service.TransactionResult((JsonObject)res.result().body()) : null));
+      }
+    });
+  }
 }

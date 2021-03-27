@@ -23,7 +23,7 @@ public class QueryRouter {
     private final QueryService service;
 
     public void build(Router router) {
-        router.post("/query")
+        router.post(QueryService.HTTP_PATH)
                 .handler(AuthorizationHandler.create(vertx))
                 .handler(ResponseTimeHandler.create())
                 .handler(Context.create())
@@ -41,11 +41,10 @@ public class QueryRouter {
                     routingContext.response()
                             .setStatusCode(200)
                             .setChunked(true)
-                            .putHeader("x-request-id", context.getId())
+                            .putHeader("x-transaction-id", context.getId())
                             .end(r.encode(), "UTF-8");
                 })
                 .onFailure(e -> {
-                    routingContext.response().putHeader("x-request-id", context.getId());
                     routingContext.fail(505, e);
                 });
     }
