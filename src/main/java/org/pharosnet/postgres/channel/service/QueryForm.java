@@ -20,7 +20,6 @@ public class QueryForm {
         return jsonObject;
     }
 
-
     private String query;
     private JsonArray args;
     private Boolean batch;
